@@ -1,0 +1,7 @@
+[DERIV]
+TOKEN = cole_sua_chave_de_15_caracteres_aqui
+APP_ID = 1089
+SYMBOL = cryBTCUSD
+STAKE = 1.0
+DURATION = 3
+DURATION_UNIT = m
