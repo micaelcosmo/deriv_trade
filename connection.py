@@ -1,5 +1,6 @@
 import json
 import websockets
+import socket
 
 from logger import BotLogger
 
@@ -17,8 +18,13 @@ class DerivClient:
     async def connect(self):
         """Estabelece a conexão WebSocket."""
         logger.info(f"Estabelecendo conexão com {self.api_url}...")
-        self.ws = await websockets.connect(self.api_url)
-        logger.info("Conexão WebSocket estabelecida com sucesso.")
+        try:
+            # Forçando IPv4 (family=socket.AF_INET) para evitar timeout em redes IPv6 que bloqueiam/dropam a conexão
+            self.ws = await websockets.connect(self.api_url, family=socket.AF_INET)
+            logger.info("Conexão WebSocket estabelecida com sucesso.")
+        except Exception as e:
+            logger.error(f"Erro ao conectar: {e}")
+            raise
 
     async def send(self, payload: dict):
         """Envia um dicionário como JSON para a API."""
@@ -32,6 +38,7 @@ class DerivClient:
     async def authenticate(self, token: str):
         """Realiza a autenticação utilizando o token de Trade."""
         logger.info("Enviando requisição de autenticação...")
+        logger.info(f"Token recebido: {token[:20]}...{token[-20:]} (comprimento: {len(token)})")
         await self.send({"authorize": token})
         
         while True:

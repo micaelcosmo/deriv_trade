@@ -1,41 +1,41 @@
-class TrendStrategy:
+class ContrarianStrategy:
     """
-    Classe de domínio puro para análise de mercado cripto.
-    Isolada de bibliotecas externas para permitir testes lógicos puros.
+    Estratégia contrária baseada na maioria dos candles anteriores.
+    Também inclui uma verificação de volatilidade mínima.
     """
 
-    def __init__(self, period: int = 3):
+    def __init__(self, period: int = 5, min_avg_candle_body_size: float = 0.0):
+        """
+        Inicializa a estratégia.
+        :param period: Número de candles a serem analisados.
+        :param min_avg_candle_body_size: O tamanho médio mínimo do corpo do candle para considerar o mercado volátil.
+        """
         self.period = period
-        self.history = []
-        self.current_trend = None
+        self.min_avg_candle_body_size = min_avg_candle_body_size
 
-    def add_tick(self, price: float):
-        """Adiciona um novo preço ao histórico respeitando a janela de período."""
-        self.history.append(price)
-        if len(self.history) > self.period:
-            self.history.pop(0)
-
-    def get_signal(self) -> str | None:
+    def analyze(self, candles: list[dict]) -> tuple[str | None, str]:
         """
-        Analisa o histórico.
+        Analisa uma lista de candles.
         Retorna 'CALL' (Compra/Cima), 'PUT' (Venda/Baixo) ou None (Aguardar).
+        Também retorna uma razão pela decisão.
         """
-        if len(self.history) < self.period:
-            return None
+        if not candles or len(candles) < self.period:
+            return None, f"Dados insuficientes ({len(candles)}/{self.period} candles)."
 
-        is_call = all(self.history[i] < self.history[i + 1] for i in range(len(self.history) - 1))
-        if is_call:
-            if self.current_trend != "CALL":
-                self.current_trend = "CALL"
-                return "CALL"
-            return None
+        # 1. Verificação de volatilidade (variação)
+        candle_bodies = [abs(c['close'] - c['open']) for c in candles]
+        avg_body_size = sum(candle_bodies) / len(candle_bodies)
 
-        is_put = all(self.history[i] > self.history[i + 1] for i in range(len(self.history) - 1))
-        if is_put:
-            if self.current_trend != "PUT":
-                self.current_trend = "PUT"
-                return "PUT"
-            return None
+        if avg_body_size < self.min_avg_candle_body_size:
+            return None, f"Baixa volatilidade. Média do corpo do candle (${avg_body_size:.4f}) abaixo do mínimo (${self.min_avg_candle_body_size:.4f})."
 
-        self.current_trend = None
-        return None
+        # 2. Lógica Contrária: contar candles de compra (verde) e venda (vermelho)
+        buy_candles = sum(1 for c in candles if c['close'] > c['open'])
+        sell_candles = sum(1 for c in candles if c['close'] < c['open'])
+
+        if sell_candles > buy_candles:
+            return "CALL", f"Sinal CONTRÁRIO: Maioria de Venda ({sell_candles}/{self.period}) -> Aposta em ALTA."
+        elif buy_candles > sell_candles:
+            return "PUT", f"Sinal CONTRÁRIO: Maioria de Compra ({buy_candles}/{self.period}) -> Aposta em BAIXA."
+        else:
+            return None, f"Mercado indeciso. Candles de compra ({buy_candles}) e venda ({sell_candles}) equilibrados."

@@ -1,7 +1,8 @@
 [DERIV]
-TOKEN = cole_sua_chave_de_15_caracteres_aqui
-APP_ID = 1089
+TOKEN = cole_seu_token_de_trade_aqui
+APP_ID = seu_app_id_pessoal_aqui
 SYMBOL = cryBTCUSD
 STAKE = 1.0
 DURATION = 3
 DURATION_UNIT = m
+TEST_MODE = False
